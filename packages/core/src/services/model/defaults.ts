@@ -23,6 +23,7 @@ const PROVIDER_ENV_KEYS = {
   ollama: [],
   minimax: ['VITE_MINIMAX_API_KEY'],
   cloudflare: ['VITE_CF_API_TOKEN'],
+  'cloudflare-worker': [],
   grok: ['VITE_GROK_API_KEY', 'VITE_XAI_API_KEY'],
   'xiaomi-mimo-token-plan': ['VITE_MIMO_TOKEN_PLAN_API_KEY']
 } as const;
@@ -81,6 +82,7 @@ export function getBuiltinModelIds(): string[] {
 export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<string, TextModelConfig> {
   const adapterRegistry = registry || new TextAdapterRegistry();
   const result: Record<string, TextModelConfig> = {};
+  const proxyOnly = getEnvVar('VITE_CF_PROXY_ONLY') === 'true';
 
   // 批量生成标准 Provider 配置
   for (const [providerId, envKeys] of Object.entries(PROVIDER_ENV_KEYS)) {
@@ -106,7 +108,9 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
     // 使用模型的默认参数值初始化 paramOverrides
     const defaultParamValues = defaultModel.defaultParameterValues || {};
     const requiredConnectionFields = PROVIDER_REQUIRED_CONNECTION_FIELDS[providerId] || ['apiKey'];
-    const enabled = shouldEnableFromRequiredFields(connectionConfig, requiredConnectionFields);
+    const enabled = proxyOnly
+      ? providerId === 'cloudflare-worker'
+      : shouldEnableFromRequiredFields(connectionConfig, requiredConnectionFields);
 
     result[providerId] = {
       id: provider.id,
@@ -162,7 +166,7 @@ export function getDefaultTextModels(registry?: ITextAdapterRegistry): Record<st
   result.custom = {
     id: 'custom',
     name: 'OpenAI Compatible (Custom)',
-    enabled: hasExplicitCustomConfig,
+    enabled: !proxyOnly && hasExplicitCustomConfig,
     providerId: 'openai-compatible',
     modelId: customModelMeta.id,
     providerMeta: openaiCompatibleAdapter.getProvider(),
