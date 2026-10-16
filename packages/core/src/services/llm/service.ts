@@ -16,6 +16,7 @@ import { isRunningInElectron } from '../../utils/environment';
 import { ElectronLLMProxy } from './electron-proxy';
 import { TextAdapterRegistry } from './adapters/registry';
 import { mergeOverrides, splitOverridesBySchema } from '../model/parameter-utils';
+import { getEnvVar } from '../../utils/environment';
 
 /**
  * LLM服务实现 - 基于 Adapter 架构
@@ -65,6 +66,9 @@ export class LLMService implements ILLMService {
     }
     if (!modelConfig.providerMeta || !modelConfig.providerMeta.id) {
       throw new RequestConfigError('Model provider metadata cannot be empty');
+    }
+    if (getEnvVar('VITE_CF_PROXY_ONLY') === 'true' && modelConfig.providerMeta.id !== 'cloudflare-worker') {
+      throw new RequestConfigError('Cloudflare-only deployment blocks direct model providers');
     }
     if (!modelConfig.modelMeta || !modelConfig.modelMeta.id) {
       throw new RequestConfigError('Model metadata cannot be empty');
@@ -245,6 +249,9 @@ export class LLMService implements ILLMService {
 
       // 使用 Registry 获取模型列表
       const providerId = modelConfig.providerMeta.id;
+      if (getEnvVar('VITE_CF_PROXY_ONLY') === 'true' && providerId !== 'cloudflare-worker') {
+        throw new RequestConfigError('Cloudflare-only deployment blocks direct model providers');
+      }
       let models: TextModel[] = [];
 
       // NOTE: Registry.getModels() will silently fall back to static models when dynamic fetch fails.
