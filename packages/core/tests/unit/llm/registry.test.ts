@@ -118,9 +118,10 @@ describe('TextAdapterRegistry', () => {
       const providers = registry.getAllProviders();
 
       expect(Array.isArray(providers)).toBe(true);
-      expect(providers.length).toBe(16);
+      expect(providers.length).toBe(17);
 
       const providerIds = providers.map(p => p.id);
+      expect(providerIds).toContain('cloudflare-worker');
       expect(providerIds).toEqual(
         expect.arrayContaining(['openai', 'openai-compatible', 'deepseek', 'siliconflow', 'zhipu', 'gemini', 'anthropic', 'dashscope', 'openrouter', 'modelscope', 'ollama', 'minimax', 'cloudflare', 'grok', 'chrome-built-in', 'xiaomi-mimo-token-plan'])
       );
